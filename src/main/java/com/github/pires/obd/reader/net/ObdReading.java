@@ -37,6 +37,10 @@ public class ObdReading {
         this.timestamp = timestamp;
         this.vehicleid = vehicleid;
         this.readings = readings;
+        if(readings.containsKey("VIN"))
+        {
+            vehicleid = readings.get("VIN");
+        }
     }
 
     public double getLatitude() {

@@ -32,6 +32,11 @@ import java.util.Set;
  */
 public class ConfigActivity extends PreferenceActivity implements OnPreferenceChangeListener {
 
+    public static final String IOTP_ORG_ID_KEY = "iotp_org_id_preference";
+    public static final String IOTP_DEVICE_TYPE_KEY = "iotp_device_type_preference";
+    public static final String IOTP_DEVICE_ID_KEY = "iotp_device_id_preference";
+    public static final String IOTP_DEVICE_TOKEN_KEY = "iotp_device_token_preference";
+
     public static final String BLUETOOTH_LIST_KEY = "bluetooth_list_preference";
     public static final String UPLOAD_URL_KEY = "upload_url_preference";
     public static final String UPLOAD_DATA_KEY = "upload_data_preference";

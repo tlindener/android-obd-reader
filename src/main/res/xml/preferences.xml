@@ -2,26 +2,38 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
     <PreferenceCategory
         android:key="@string/pref_upload_category"
-        android:title="@string/pref_upload_category_title">
+        android:title="IBM IoT Platform Streaming">
         <CheckBoxPreference
             android:defaultValue="false"
             android:dialogTitle="@string/pref_upload_title"
             android:key="upload_data_preference"
-            android:summaryOff="@string/pref_upload_summaryOff"
-            android:summaryOn="@string/pref_upload_summaryOn"
+            android:summaryOff="Enable mqtt streaming"
+            android:summaryOn="Disable mqtt streaming"
             android:title="@string/pref_upload_title" />
         <EditTextPreference
-            android:defaultValue="http://www.example.com/obd/get_data.php"
-            android:dialogTitle="@string/pref_upload_url_title"
-            android:key="upload_url_preference"
-            android:summary="@string/pref_upload_url_summary"
-            android:title="@string/pref_upload_url_title" />
+            android:defaultValue=""
+            android:dialogTitle="IoT Platform OrgId"
+            android:key="iotp_org_id_preference"
+            android:summary="Organization Id provided by IoT Platform"
+            android:title="IoT Platform OrgId" />
         <EditTextPreference
             android:defaultValue=""
-            android:dialogTitle="@string/pref_vehicle_id_title"
-            android:key="vehicle_id_preference"
-            android:summary="@string/pref_vehicle_id_summary"
-            android:title="@string/pref_vehicle_id_title" />
+            android:dialogTitle="IoT Platform Device Id"
+            android:key="iotp_device_id_preference"
+            android:summary="Device Id registered in IoT Platform"
+            android:title="IoT Platform Device Id" />
+        <EditTextPreference
+            android:defaultValue=""
+            android:dialogTitle="IoT Platform Device Type"
+            android:key="iotp_device_type_preference"
+            android:summary="Device Type provided by IoT Platform"
+            android:title="IoT Platform Device Type" />
+        <EditTextPreference
+            android:defaultValue=""
+            android:dialogTitle="IoT Platform Token"
+            android:key="iotp_device_token_preference"
+            android:summary="Token provided by IoT Platform"
+            android:title="IoT Platform Token" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/title_pref_bluetooth">
         <CheckBoxPreference

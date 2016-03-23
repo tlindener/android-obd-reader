@@ -54,10 +54,19 @@ import com.github.pires.obd.reader.net.ObdReading;
 import com.github.pires.obd.reader.net.ObdService;
 import com.github.pires.obd.reader.trips.TripLog;
 import com.github.pires.obd.reader.trips.TripRecord;
+import com.google.gson.Gson;
 import com.google.inject.Inject;
+
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.MqttPersistenceException;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.sql.Connection;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -94,6 +103,9 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
     private static final int SAVE_TRIP_NOT_AVAILABLE = 11;
     private static final int REQUEST_ENABLE_BT = 1234;
     private static boolean bluetoothDefaultIsEnable = false;
+
+    private MqttClient mqttClient = null;
+    private  MqttConnectOptions mqttConnectOptions = null;
 
     static {
         RoboGuice.setUseAnnotationDatabases(false);
@@ -273,6 +285,8 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
         }
 
         if (vv.findViewWithTag(cmdID) != null) {
+
+
             TextView existingTV = (TextView) vv.findViewWithTag(cmdID);
             existingTV.setText(cmdResult);
         } else addTableRow(cmdID, cmdName, cmdResult);
@@ -305,9 +319,12 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
             if (cmdID.equals(AvailableCommandNames.SPEED.toString())) {
                 SpeedCommand command = (SpeedCommand) job.getCommand();
                 currentTrip.setSpeedMax(command.getMetricSpeed());
+
+                Log.d("Speed", String.valueOf(currentTrip.getSpeedMax()));
             } else if (cmdID.equals(AvailableCommandNames.ENGINE_RPM.toString())) {
                 RPMCommand command = (RPMCommand) job.getCommand();
                 currentTrip.setEngineRpmMax(command.getRPM());
+                Log.d("RPM", String.valueOf(currentTrip.getEngineRpmMax()));
             } else if (cmdID.endsWith(AvailableCommandNames.ENGINE_RUNTIME.toString())) {
                 RuntimeCommand command = (RuntimeCommand) job.getCommand();
                 currentTrip.setEngineRuntime(command.getFormattedResult());
@@ -332,6 +349,10 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
 
         // create a log instance for use by this application
         triplog = TripLog.getInstance(this.getApplicationContext());
+
+            createMqttClient();
+        new connectOnce().execute("");
+
     }
 
     @Override
@@ -594,6 +615,7 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
         if (isServiceBound) {
             for (ObdCommand Command : ObdConfig.getCommands()) {
                 if (prefs.getBoolean(Command.getName(), true))
+                  //  Command.setResponseTimeDelay(100L);
                     service.queueJob(new ObdCommandJob(Command));
             }
         }
@@ -696,24 +718,91 @@ public class MainActivity extends RoboActivity implements ObdProgressListener, L
         protected Void doInBackground(ObdReading... readings) {
             Log.d(TAG, "Uploading " + readings.length + " readings..");
             // instantiate reading service client
-            final String endpoint = prefs.getString(ConfigActivity.UPLOAD_URL_KEY, "");
-            RestAdapter restAdapter = new RestAdapter.Builder()
-                    .setEndpoint(endpoint)
-                    .build();
-            ObdService service = restAdapter.create(ObdService.class);
+
+
+
             // upload readings
             for (ObdReading reading : readings) {
-                try {
-                    Response response = service.uploadReading(reading);
-                    assert response.getStatus() == 200;
-                } catch (RetrofitError re) {
-                    Log.e(TAG, re.toString());
-                }
+
+                    Gson gson = new Gson();
+                    String json = gson.toJson(reading);
+                    MqttMessage msg = new MqttMessage();
+                    msg.setPayload(json.getBytes());
+                    if(mqttClient!= null)
+                    {
+                        try {
+                            if(!mqttClient.isConnected()) {
+                                mqttClient.connect(mqttConnectOptions);
+                            }
+                                mqttClient.publish("iot-2/evt/obd2/fmt/json", msg);
+
+
+                        } catch (MqttException e) {
+                            e.printStackTrace();
+                        }
+
+                    }
+
 
             }
             Log.d(TAG, "Done");
             return null;
         }
 
+    }
+
+    private class connectOnce extends AsyncTask<String, Void, String> {
+
+        @Override
+        protected String doInBackground(String... strings) {
+            Log.d(TAG, "connectOnce");
+            // instantiate reading service client
+
+
+            if(mqttClient!= null)
+            {
+                try {
+
+
+                    MqttMessage msg = new MqttMessage();
+                    msg.setPayload("online".getBytes());
+                    if(!mqttClient.isConnected()) {
+                        mqttClient.connect(mqttConnectOptions);
+                    }
+                    mqttClient.publish("iot-2/evt/status/fmt/plain",msg);
+
+
+                } catch (MqttException e) {
+                    e.printStackTrace();
+                }
+
+            }
+
+
+            return "";
+        }
+
+    }
+
+
+    private void createMqttClient() {
+
+        final String orgId = prefs.getString(ConfigActivity.IOTP_ORG_ID_KEY, "u9eple");
+        final String deviceType = prefs.getString(ConfigActivity.IOTP_DEVICE_TYPE_KEY, "CarOBD2");
+        final String deviceId = prefs.getString(ConfigActivity.IOTP_DEVICE_ID_KEY, "CarOBD21");
+        final String deviceToken = prefs.getString(ConfigActivity.IOTP_DEVICE_TOKEN_KEY, "CarOBD21");
+    String host = "tcp://u9eple.messaging.internetofthings.ibmcloud.com:1883";
+        String clientId = "d:" + orgId + ":" + deviceType + ":" + deviceId;
+
+         mqttConnectOptions = new MqttConnectOptions();
+        mqttConnectOptions.setPassword(deviceToken.toCharArray());
+        mqttConnectOptions.setUserName("use-token-auth");
+
+        try {
+            mqttClient = new MqttClient(host,clientId,new MemoryPersistence());
+
+        } catch (MqttException e) {
+            e.printStackTrace();
+        }
     }
 }

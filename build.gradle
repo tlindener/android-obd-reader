@@ -28,6 +28,10 @@ android {
         applicationId 'com.github.pires.obd.reader'
     }
 
+    packagingOptions {
+        exclude 'META-INF/maven/com.github.pires/obd-java-api/pom.properties'
+        exclude 'META-INF/maven/com.github.pires/obd-java-api/pom.xml'
+    }
     lintOptions {
         abortOnError false
     }
@@ -38,12 +42,14 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
 }
 
 dependencies {
     compile 'com.android.support:appcompat-v7:22.1.1'
-    compile 'com.github.pires:obd-java-api:1.0-RC14'
     compile 'org.roboguice:roboguice:3.+'
     provided 'org.roboguice:roboblender:3.+'
     compile 'com.squareup.retrofit:retrofit:1.9.0'
+    compile files('libs/org.eclipse.paho.client.mqttv3-1.0.3-SNAPSHOT.jar')
+    compile files('libs/obd-java-api-1.0-RC16-SNAPSHOT.jar')
 }
